@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
-import 'package:hmi_widgets/hmi_widgets.dart';
+import 'package:hmi_core/hmi_core_app_settings.dart';
+import 'package:hmi_networking/hmi_networking.dart';
 import 'package:stewart_platform_control/core/entities/cilinders_extractions_3f.dart';
 import 'package:stewart_platform_control/core/io/controller/mdbox_controller.dart';
 import 'package:stewart_platform_control/core/math/mapping/fluctuation_lengths_mapping.dart';
@@ -15,34 +15,35 @@ import 'package:stewart_platform_control/core/platform/stewart_platform.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/fluctuation_center/colored_coords.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/fluctuation_center/fluctuation_center_coords.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/fluctuation_center/fluctuation_side_projection.dart';
+import 'package:stewart_platform_control/presentation/platform_control/widgets/fluctuation_charts.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/sines/min_max_notifier.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/sines/platform_angle_sines.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/sines/platform_control_app_bar.dart';
 import 'package:stewart_platform_control/presentation/platform_control/widgets/sines/sine_notifier.dart';
 ///
 class PlatformControlPage extends StatefulWidget {
-  final RawDatagramSocket _chartsAppSocket;
   final double _cilinderMaxHeight;
   final Duration _controlFrequency;
   final Duration _reportFrequency;
   final double _realPlatformDimension;
   final MdboxController _controller;
+  final DsClient _dsClient;
   ///
   const PlatformControlPage({
     super.key,
     required MdboxController controller,
     required double realPlatformDimension,
     required double cilinderMaxHeight,
-    required RawDatagramSocket chartsAppSocket,
+    required DsClient dsClient,
     Duration controlFrequency = const Duration(milliseconds: 100),
     Duration reportFrequency = const Duration(milliseconds: 100),
   }) :
+    _dsClient = dsClient,
     _realPlatformDimension = realPlatformDimension, 
     _controller = controller,
     _cilinderMaxHeight = cilinderMaxHeight,
     _controlFrequency = controlFrequency,
-    _reportFrequency = reportFrequency,
-    _chartsAppSocket = chartsAppSocket;
+    _reportFrequency = reportFrequency;
   //
   @override
   State<PlatformControlPage> createState() => _PlatformControlPageState();
@@ -56,13 +57,15 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
   late final MinMaxNotifier _baselineMinMaxNotifier;
   late final ValueNotifier<Offset> _fluctuationCenterNotifier;
   late final StewartPlatform _platform;
-  late final Stream<DsDataPoint<double>> _lengthsStream;
+  late final Stream<DsDataPoint<double>> _platformStateStream;
   final StreamController<String> _messagesController = StreamController<String>.broadcast();
   late bool _isPlatformMoving;
+  late bool _isProjectionsHidden;
   //
   @override
   void initState() {
     _isPlatformMoving = false;
+    _isProjectionsHidden = false;
     _fluctuationCenterNotifier = ValueNotifier(const Offset(0.0, 0.0));
     _rotationAngleX = SineNotifier(
       sine: const Sine(
@@ -117,7 +120,6 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
       controlFrequency: widget._controlFrequency,
       reportFrequency: widget._reportFrequency,
       controller: widget._controller,
-      chartsAppSocket: widget._chartsAppSocket,
       onStartControl: () {
         setState(() {
           _isPlatformMoving = true;
@@ -132,7 +134,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
         _messagesController.add(message);
       },
     );
-    _lengthsStream = _platform.state.transform(
+    _platformStateStream = _platform.state.transform(
       StreamTransformer.fromHandlers(
         handleData: (state, sink) {
           final now = DsTimeStamp.now().toString();
@@ -150,6 +152,26 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
               ),
             );
           }
+          sink.add(
+            DsDataPoint<double>(
+              type: DsDataType.integer,
+              name: DsPointName('/alphaX'),
+              value: state.fluctuationAngles.dy * 180/pi,
+              status: DsStatus.ok,
+              timestamp: now,
+              cot: DsCot.inf,
+            ),
+          );
+          sink.add(
+            DsDataPoint<double>(
+              type: DsDataType.integer,
+              name: DsPointName('/alphaY'),
+              value: state.fluctuationAngles.dx * 180/pi,
+              status: DsStatus.ok,
+              timestamp: now,
+              cot: DsCot.inf,
+            ),
+          );
         },
       ),
     );
@@ -170,7 +192,24 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
   @override
   Widget build(BuildContext context) {
     const horizontalRadius = cilindersPlacementRadius*sqrt3/2;
+    final theme = Theme.of(context);
+    const switchingDuration = Duration(milliseconds: 300);
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(top: Setting('padding', factor: 3).toDouble),
+        child: FloatingActionButton.small(
+          tooltip: _isProjectionsHidden ? 'Показать проекции' : 'Скрыть проекции',
+          onPressed: _toggleProjectionsVisibility,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          child: Icon(
+            _isProjectionsHidden
+              ? Icons.chevron_left_rounded
+              : Icons.chevron_right_rounded,
+          ),
+        ),
+      ),
       appBar: PlatformControlAppBar(
         messagesStream: _messagesController.stream,
         onSave: () {}, //_saveValues,
@@ -188,7 +227,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
             child: AnimatedSwitcher(
               switchInCurve: Curves.easeIn,
               switchOutCurve: Curves.easeOut,
-              duration: const Duration(milliseconds: 300),
+              duration: switchingDuration,
               transitionBuilder: (child, animation) => ScaleTransition(
                 scale: animation,
                 child: FadeTransition(
@@ -197,33 +236,9 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
                 ),
               ),
               child: switch(_isPlatformMoving) {
-                true => LiveChartWidget(
-                  minX: DateTime.now().subtract(const Duration(seconds: 6))
-                    .millisecondsSinceEpoch.toDouble(),
-                  xInterval: 6000,
-                  axes: [
-                    LiveAxis(
-                      bufferLength: 4000,
-                      stream: _lengthsStream,
-                      signalName: 'cilinder0',
-                      caption: 'Цилиндр I',
-                      color: Colors.purpleAccent,
-                    ),
-                    LiveAxis(
-                      bufferLength: 4000,
-                      stream: _lengthsStream,
-                      signalName: 'cilinder1',
-                      caption: 'Цилиндр II',
-                      color: Colors.greenAccent,
-                    ),
-                    LiveAxis(
-                      bufferLength: 4000,
-                      stream: _lengthsStream,
-                      signalName: 'cilinder2',
-                      caption: 'Цилиндр III',
-                      color: Colors.orangeAccent,
-                    ),
-                  ],
+                true => FluctuationCharts(
+                  dsClient: widget._dsClient,
+                  platformStateStream: _platformStateStream,
                 ),
                 false => PlatformAngleSines(
                   baselineMinMax: _baselineMinMaxNotifier,
@@ -236,7 +251,9 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
               },
             ),
           ),
-          Expanded(
+          _isProjectionsHidden 
+          ? const SizedBox()
+          : Expanded(
             flex: 1,
             child: Card(
               child: Padding(
@@ -322,11 +339,17 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
                             // const Spacer(),
                             Expanded(
                               flex: 2,
-                              child: IconButton(
-                                onPressed: _isPlatformMoving ? null : () {
-                                  _fluctuationCenterNotifier.value = const Offset(0.0, 0.0);
-                                },
-                                icon: const Icon(Icons.cancel)),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: _isPlatformMoving ? null : () {
+                                      _fluctuationCenterNotifier.value = const Offset(0.0, 0.0);
+                                    },
+                                    icon: const Icon(Icons.cancel),
+                                  ),
+                                  const Spacer(),
+                                ],
+                              ),
                             ),
                           ],
                         );
@@ -447,5 +470,11 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
         : fluctuationFunction,
       frequency: const Duration(milliseconds: 50),
     );
+  }
+  ///
+  void _toggleProjectionsVisibility() {
+    setState(() {
+      _isProjectionsHidden = !_isProjectionsHidden;
+    });
   }
 }
