@@ -13,7 +13,7 @@ class MessageDisplay extends StatelessWidget {
     return Container(
       height: 30,
       decoration: ShapeDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: const StadiumBorder(),
       ),
       child: StreamBuilder<String>(

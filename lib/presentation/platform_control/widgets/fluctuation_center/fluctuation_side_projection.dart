@@ -46,7 +46,7 @@ class FluctuationSideProjection extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: containerRadius,
-        border: Border.all(color: Theme.of(context).colorScheme.surfaceVariant),
+        border: Border.all(color: Theme.of(context).colorScheme.surfaceContainerHighest),
       ),
       child: ClipRRect(
         borderRadius: containerRadius,
