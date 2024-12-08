@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
@@ -20,6 +21,7 @@ import 'package:stewart_platform_control/presentation/platform_control/widgets/s
 import 'package:stewart_platform_control/presentation/platform_control/widgets/sines/sine_notifier.dart';
 ///
 class PlatformControlPage extends StatefulWidget {
+  final RawDatagramSocket _chartsAppSocket;
   final double _cilinderMaxHeight;
   final Duration _controlFrequency;
   final Duration _reportFrequency;
@@ -31,6 +33,7 @@ class PlatformControlPage extends StatefulWidget {
     required MdboxController controller,
     required double realPlatformDimension,
     required double cilinderMaxHeight,
+    required RawDatagramSocket chartsAppSocket,
     Duration controlFrequency = const Duration(milliseconds: 100),
     Duration reportFrequency = const Duration(milliseconds: 100),
   }) :
@@ -38,7 +41,8 @@ class PlatformControlPage extends StatefulWidget {
     _controller = controller,
     _cilinderMaxHeight = cilinderMaxHeight,
     _controlFrequency = controlFrequency,
-    _reportFrequency = reportFrequency;
+    _reportFrequency = reportFrequency,
+    _chartsAppSocket = chartsAppSocket;
   //
   @override
   State<PlatformControlPage> createState() => _PlatformControlPageState();
@@ -113,6 +117,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
       controlFrequency: widget._controlFrequency,
       reportFrequency: widget._reportFrequency,
       controller: widget._controller,
+      chartsAppSocket: widget._chartsAppSocket,
       onStartControl: () {
         setState(() {
           _isPlatformMoving = true;

@@ -22,5 +22,9 @@
     },
     "controlFrequency": {
         "milliseconds": 100
+    },
+    "chartsApp": {
+        "host": "127.0.0.1",
+        "port": 4755
     }
 }

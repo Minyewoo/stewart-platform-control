@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' hide log;
+import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:stewart_platform_control/core/entities/cilinder_lengths_3f.dart';
 import 'package:stewart_platform_control/core/io/controller/mdbox_controller.dart';
@@ -7,6 +9,7 @@ import 'package:stewart_platform_control/core/math/mapping/time_mapping.dart';
 import 'package:stewart_platform_control/core/platform/platform_state.dart';
 ///
 class StewartPlatform {
+  final RawDatagramSocket _chartsAppSocket;
   final MdboxController _controller;
   final void Function()? _onStartControl;
   final void Function()? _onStopControl;
@@ -19,6 +22,7 @@ class StewartPlatform {
     required Duration controlFrequency,
     required Duration reportFrequency,
     required MdboxController controller,
+    required RawDatagramSocket chartsAppSocket,
     void Function()? onStartControl,
     void Function()? onStopControl,
     void Function(String message)? onStatusReport,
@@ -26,7 +30,8 @@ class StewartPlatform {
     _controller = controller,
     _onStatusReport = onStatusReport,
     _onStartControl = onStartControl,
-    _onStopControl = onStopControl;
+    _onStopControl = onStopControl,
+    _chartsAppSocket = chartsAppSocket;
   ///
   Stream<PlatformState> get state => _stateController.stream;
   ///
@@ -43,7 +48,15 @@ class StewartPlatform {
       _onStatusReport?.call('Начало колебаний');
       _continousPosition!.start();
       _continousPosition!.addListener(() {
-        _updatePlatformState(_continousPosition!.value);
+        final platformState = _continousPosition!.value;
+        _updatePlatformState(platformState);
+        final package = ByteData(16)
+        ..setFloat64(0, platformState.beamsPosition.cilinder1)
+        ..setInt64(8, DateTime.now().millisecondsSinceEpoch);
+        _chartsAppSocket.send(
+          package.buffer.asUint8List(),
+          InternetAddress.loopbackIPv4, 4756,
+        );
       });
       _onStartControl?.call();
     }

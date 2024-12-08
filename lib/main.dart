@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,7 +10,8 @@ import 'package:window_manager/window_manager.dart';
 //
 Future<void> main() async {
   hierarchicalLoggingEnabled = true;
-  final log = const Log('main')..level=LogLevel.all;
+  const log = Log('main');
+  _defineLogLevel(log);
   const fileConfig = FileConfig(
     file: TextFile.asset('assets/configs/app-config.json'),
   );
@@ -38,6 +41,10 @@ Future<void> main() async {
         MainApp(
           config: config,
           preferences: preferences,
+          chartsAppSocket: await RawDatagramSocket.bind(
+            config.chartsAppHost,
+            config.chartsAppPort,
+          ),
         ),
       );
     },
@@ -47,4 +54,22 @@ Future<void> main() async {
       stackTrace,
     ),
   );
+}
+///
+void _defineLogLevel(Log log) {
+  const mode = (kReleaseMode, kProfileMode, kDebugMode);
+  switch(mode) {
+    case (true, false, false):
+      log.level = LogLevel.off;
+      break;
+    case (false, true, false):
+      log.level = LogLevel.info;
+      break;
+    case (false, false, true):
+      log.level = LogLevel.debug;
+      break;
+    default:
+      log.level = LogLevel.all;
+      break;
+  }
 }

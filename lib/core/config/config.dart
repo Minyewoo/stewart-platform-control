@@ -9,6 +9,8 @@ class Config {
   final MinMax<double> periodConstraints;
   final MinMax<double> phaseShiftConstraints;
   final Duration controlFrequency;
+  final String chartsAppHost;
+  final int chartsAppPort;
   ///
   const Config({
     this.myAddress = const NetAddress(
@@ -24,6 +26,8 @@ class Config {
     this.periodConstraints = const MinMax(min: 1, max: 15),
     this.phaseShiftConstraints = const MinMax(min: 0, max: 180),
     this.controlFrequency = const Duration(milliseconds: 100),
+    this.chartsAppHost = '127.0.0.1',
+    this.chartsAppPort = 0,
   });
   ///
   factory Config.fromMap(Map<String, dynamic> map) {
@@ -39,6 +43,8 @@ class Config {
       periodConstraints: MinMax.fromMap(map['periodConstraints']),
       phaseShiftConstraints: MinMax.fromMap(map['phaseShiftConstraints']),
       controlFrequency: frequency,
+      chartsAppHost: map['chartsApp']?['host'],
+      chartsAppPort: map['chartsApp']?['port'],
     );
   }
 }
