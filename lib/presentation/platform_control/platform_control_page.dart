@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
 import 'package:hmi_core/hmi_core_app_settings.dart';
 import 'package:hmi_networking/hmi_networking.dart';
+import 'package:hmi_widgets/hmi_widgets.dart';
 import 'package:stewart_platform_control/core/entities/cilinders_extractions_3f.dart';
+import 'package:stewart_platform_control/core/entities/excel_mapping.dart';
 import 'package:stewart_platform_control/core/io/controller/mdbox_controller.dart';
 import 'package:stewart_platform_control/core/math/mapping/fluctuation_lengths_mapping.dart';
+import 'package:stewart_platform_control/core/math/mapping/frequent_time_mapping.dart';
 import 'package:stewart_platform_control/core/math/mapping/time_mapping.dart';
 import 'package:stewart_platform_control/core/math/min_max.dart';
 import 'package:stewart_platform_control/core/math/sine.dart';
@@ -213,6 +217,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
       appBar: PlatformControlAppBar(
         messagesStream: _messagesController.stream,
         onSave: () {}, //_saveValues,
+        onPlayFile: _onPlayFile,
         onStartFluctuations:  _onStartFluctuations,
         onZeroPositionRequest: _onZeroPos,
         onMaxPositionRequest: _onMaxPos,
@@ -395,13 +400,28 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
     );
   }
   ///
-  void _onStartFluctuations() {
+  Future<void> _fluctuateFromTimeMapping(TimeMapping<PlatformState> timeMapping) {
     setState(() {
       _isPlatformMoving = true;
     });
-    _platform.startFluctuations(
-      _generateFluctuationFunction(applyHeightOffset: true),
+    return _platform.startFluctuations(
+      timeMapping,
     );
+  }
+  ///
+  void _onStartFluctuations() {
+    _fluctuateFromTimeMapping(_generateFluctuationFunction(applyHeightOffset: true),);
+  }
+  ///
+  Future<void> _onPlayFile() async {
+    final filePath = await _pickFile();
+    return switch(filePath) {
+      Some(:final value) => switch(await ExcelMapping(filePath: value).mapping()) {
+        Some(:final value) => _fluctuateFromTimeMapping(value),
+        None() => mounted ? BottomMessage.error(title: 'Неверные данные').show(context) : null,
+      },
+      None() => mounted ? BottomMessage.warning(title: 'Файл не выбран').show(context) : null,
+    };
   }
   ///
   Future<void> _onZeroPos() async {
@@ -461,7 +481,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
       fluctuationMinPositions.cilinder3,
     ].reduce(min);
     final heightOffset = lowerPosition < 0 ? lowerPosition.abs() : 0.0;
-    return TimeMapping(
+    return FrequentTimeMapping(
       mapping: applyHeightOffset 
         ? fluctuationFunction.copyWith(
           baselineSine: baselineSine
@@ -470,6 +490,21 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
         : fluctuationFunction,
       frequency: const Duration(milliseconds: 50),
     );
+  }
+  ///
+  Future<Option<String>> _pickFile() {
+    return FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: ['xlsx'],
+    ).then((result) async {
+      if(result case FilePickerResult(:final xFiles)) {
+        if(xFiles case [final file]) {
+          return Some(file.path);
+        }
+      }
+      return const None();
+    });
   }
   ///
   void _toggleProjectionsVisibility() {

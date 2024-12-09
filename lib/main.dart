@@ -11,7 +11,7 @@ import 'package:stewart_platform_control/main_app.dart';
 import 'package:window_manager/window_manager.dart';
 //
 Future<void> main() async {
-  // hierarchicalLoggingEnabled = true;
+  hierarchicalLoggingEnabled = true;
   const log = Log('main');
   _defineLogLevel(log);
   const windowOptions = WindowOptions(
@@ -87,7 +87,7 @@ Future<void> _initStatics() async {
 }
 ///
 void _defineLogLevel(Log log) {
-  // log.level = LogLevel.all;
+  log.level = LogLevel.all;
   // const mode = (kReleaseMode, kProfileMode, kDebugMode);
   // switch(mode) {
   //   case (true, false, false):

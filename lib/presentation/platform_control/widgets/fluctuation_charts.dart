@@ -17,7 +17,7 @@ class FluctuationCharts extends StatelessWidget {
   //
   @override
   Widget build(BuildContext context) {
-    const liveAxisBufferLength = 4000;
+    const liveAxisBufferLength = 12000;
     const xMarkInterval = Duration(seconds: 6);
     return Column(
       children: [
