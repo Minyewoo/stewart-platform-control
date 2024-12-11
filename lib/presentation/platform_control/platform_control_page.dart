@@ -416,7 +416,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
   Future<void> _onPlayFile() async {
     final filePath = await _pickFile();
     return switch(filePath) {
-      Some(:final value) => switch(await ExcelMapping(filePath: value).mapping()) {
+      Some(:final value) => switch(await ExcelMapping(filePath: value).timeMapping()) {
         Some(:final value) => _fluctuateFromTimeMapping(value),
         None() => mounted ? BottomMessage.error(title: 'Неверные данные').show(context) : null,
       },

@@ -25,7 +25,7 @@ class ExcelMapping {
     required String filePath,
   }) : _filePath = filePath;
   ///
-  Future<Option<TimeMapping<PlatformState>>> mapping() async {
+  Future<Option<TimeMapping<PlatformState>>> timeMapping() async {
     _log.info('Reading mapping from $_filePath');
     final excel = Excel.decodeBytes(
       await File(_filePath).readAsBytes(),
@@ -35,8 +35,8 @@ class ExcelMapping {
     final dataHeaderText = sheet?.cell(CellIndex.indexByString('B1')).value.toString();
     final fluctuationType = (dataHeaderText?.startsWith('Angle') ?? false) ? FluctuationType.unregular : FluctuationType.vertical;
     final mappingFunction = switch(fluctuationType) {
-      FluctuationType.vertical => _mapPosition,
-      FluctuationType.unregular => _mapAngle,
+      FluctuationType.vertical => (double value) => _mapPosition(value, factor: 0.7),
+      FluctuationType.unregular => (double value) => _mapAngle(value),
     };
     final data = sheet?.rows.skip(1).map(
       (row) {
@@ -101,7 +101,7 @@ class ExcelMapping {
     );
   }
   ///
-  PlatformState _mapAngle(double angle) {
+  PlatformState _mapAngle(double angle, {double factor = 1.0}) {
     final radians = angle.toRadians();
     return PlatformState(
       beamsPosition: lengthsFunctionX.of(
@@ -109,18 +109,18 @@ class ExcelMapping {
           fluctuationAngleRadians: radians,
           fluctuationCenterOffset: 0.0,
         ),
-      ),
+      ).multiply(factor),
       fluctuationAngles: Offset(radians, 0.0),
     );
   }
   ///
-  PlatformState _mapPosition(double position) {
+  PlatformState _mapPosition(double position, {double factor = 1.0}) {
     return PlatformState(
       beamsPosition: CilinderLengths3f(
         cilinder1: position,
         cilinder2: position,
         cilinder3: position,
-      ),
+      ).multiply(factor),
       fluctuationAngles: Offset(0.0, 0.0),
     );
   }

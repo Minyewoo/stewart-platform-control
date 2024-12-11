@@ -21,4 +21,11 @@ class CilinderLengths3f {
     cilinder2: cilinder2+lengths.cilinder2,
     cilinder3: cilinder3+lengths.cilinder3,
   );
+  ///
+  ///
+  CilinderLengths3f multiply(num value) => CilinderLengths3f(
+    cilinder1: cilinder1*value,
+    cilinder2: cilinder2*value,
+    cilinder3: cilinder3*value,
+  );
 }
