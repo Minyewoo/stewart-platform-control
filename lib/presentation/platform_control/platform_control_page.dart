@@ -138,7 +138,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
         _messagesController.add(message);
       },
     );
-    _platformStateStream = _platform.state.transform(
+    _platformStateStream = _platform.state.transform<DsDataPoint<double>>(
       StreamTransformer.fromHandlers(
         handleData: (state, sink) {
           final now = DsTimeStamp.now().toString();
@@ -178,7 +178,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
           );
         },
       ),
-    );
+    ).asBroadcastStream();
     super.initState();
   }
   //
