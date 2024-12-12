@@ -35,7 +35,7 @@ class ExcelMapping {
     final dataHeaderText = sheet?.cell(CellIndex.indexByString('B1')).value.toString();
     final fluctuationType = (dataHeaderText?.startsWith('Angle') ?? false) ? FluctuationType.unregular : FluctuationType.vertical;
     final mappingFunction = switch(fluctuationType) {
-      FluctuationType.vertical => (double value) => _mapPosition(value, factor: 0.7),
+      FluctuationType.vertical => (double value) => _mapPosition(value, factor: 0.3),
       FluctuationType.unregular => (double value) => _mapAngle(value),
     };
     final data = sheet?.rows.skip(1).map(
@@ -103,14 +103,19 @@ class ExcelMapping {
   ///
   PlatformState _mapAngle(double angle, {double factor = 1.0}) {
     final radians = angle.toRadians();
-    return PlatformState(
-      beamsPosition: lengthsFunctionX.of(
+    final beamsPositions = lengthsFunctionX.of(
         CilinderLengthsDependencies(
           fluctuationAngleRadians: radians,
           fluctuationCenterOffset: 0.0,
         ),
-      ).multiply(factor),
-      fluctuationAngles: Offset(radians, 0.0),
+      ).multiply(factor);
+    return PlatformState(
+      beamsPosition: CilinderLengths3f(
+        cilinder1: 0.0,
+        cilinder2: beamsPositions.cilinder1,
+        cilinder3: beamsPositions.cilinder2,
+      ),
+      fluctuationAngles: Offset(-radians, 0.0),
     );
   }
   ///
