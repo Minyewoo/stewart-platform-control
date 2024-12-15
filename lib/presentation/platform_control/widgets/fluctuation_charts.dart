@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
 import 'package:hmi_networking/hmi_networking.dart';
 import 'package:hmi_widgets/hmi_widgets.dart';
+import 'package:path/path.dart';
+import 'package:stewart_platform_control/core/io/csv_data_point_logger.dart';
 ///
 class FluctuationCharts extends StatefulWidget {
   final DsClient _dsClient;
@@ -24,127 +24,35 @@ class FluctuationCharts extends StatefulWidget {
 }
 
 class _FluctuationChartsState extends State<FluctuationCharts> {
-  late final File _cilinder0Log;
-  late final File _cilinder1Log;
-  late final File _cilinder2Log;
-  late final File _phiXLog;
-  late final File _phiYLog;
-  late final File _rollLog;
-  late final File _pitchLog;
-  late final File _yawLog;
-  late final File _deltaAngleXLog;
-  late final File _deltaAngleYLog;
-  late final File _deltaAngleZLog;
-  late final File _heaveLog;
-
+  late final CsvDataPointLogger _pointLogger;
+  //
   @override
   void initState() {
-    const csvFieldDelimiter = ';';
-    const csvEndOfLine = '\r\n';
     final isoNow = DateTime.now().toIso8601String();
-    final pointToCsvTransformer = StreamTransformer<DsDataPoint<double>, String>.fromBind(
-      (stream) => stream.map(
-        (point) => <dynamic>[point.timestamp, point.value],
-      ).transform(ListToCsvConverter(
-        fieldDelimiter: csvFieldDelimiter,
-        eol: csvEndOfLine,
-      )),
+    final dsClient = widget._dsClient;
+    _pointLogger = CsvDataPointLogger(
+      pointsStreams: [
+        widget._platformStateStream,
+        dsClient.streamReal('Platform.Roll'),
+        dsClient.streamReal('Platform.Pitch'),
+        dsClient.streamReal('Platform.Yaw'),
+        dsClient.streamReal('Platform.DeltaAngleX'),
+        dsClient.streamReal('Platform.DeltaAngleY'),
+        dsClient.streamReal('Platform.DeltaAngleZ'),
+        dsClient.streamReal('Platform.Heave')
+      ],
+      directoryPath: join('run_logs', isoNow),
+      converter: ListToCsvConverter(
+        fieldDelimiter: ';',
+        eol: '\r\n',
+      ),
     );
-    //
-    _cilinder0Log = File('Cilinder0_$isoNow.csv');
-    _cilinder0Log.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._platformStateStream
-      .where((point) => point.name.name == 'cilinder0')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _cilinder0Log.writeAsString(row, mode: FileMode.append));
-    //
-    _cilinder1Log = File('Cilinder1_$isoNow.csv');
-    _cilinder1Log.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._platformStateStream
-      .where((point) => point.name.name == 'cilinder1')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _cilinder1Log.writeAsString(row, mode: FileMode.append));
-    //
-    _cilinder2Log = File('Cilinder2_$isoNow.csv');
-    _cilinder2Log.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._platformStateStream
-      .where((point) => point.name.name == 'cilinder2')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _cilinder2Log.writeAsString(row, mode: FileMode.append));
-    //
-    _phiXLog = File('PhiX_$isoNow.csv');
-    _phiXLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._platformStateStream
-      .where((point) => point.name.name == 'alphaX')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _phiXLog.writeAsString(row, mode: FileMode.append));
-    //
-    _phiYLog = File('PhiY_$isoNow.csv');
-    _phiYLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._platformStateStream
-      .where((point) => point.name.name == 'alphaY')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _phiYLog.writeAsString(row, mode: FileMode.append));
-    //
-    _rollLog = File('Roll_$isoNow.csv');
-    _rollLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.Roll')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _rollLog.writeAsString(row, mode: FileMode.append));
-    //
-    _pitchLog = File('Pitch_$isoNow.csv');
-    _pitchLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.Pitch')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _pitchLog.writeAsString(row, mode: FileMode.append));
-    //
-    _yawLog = File('Yaw_$isoNow.csv');
-    _yawLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.Yaw')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _yawLog.writeAsString(row, mode: FileMode.append));
-    //
-    _deltaAngleXLog = File('DeltaAngleX_$isoNow.csv');
-    _deltaAngleXLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.DeltaAngleX')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _deltaAngleXLog.writeAsString(row, mode: FileMode.append));
-    //
-    _deltaAngleYLog = File('DeltaAngleY_$isoNow.csv');
-    _deltaAngleYLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.DeltaAngleY')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _deltaAngleYLog.writeAsString(row, mode: FileMode.append));
-    //
-    _deltaAngleZLog = File('DeltaAngleZ_$isoNow.csv');
-    _deltaAngleZLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.DeltaAngleZ')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _deltaAngleZLog.writeAsString(row, mode: FileMode.append));
-    //
-    _heaveLog = File('Heave_$isoNow.csv');
-    _heaveLog.writeAsString('Timestamp${csvFieldDelimiter}Value$csvEndOfLine', mode: FileMode.append);
-    widget._dsClient.streamReal('Platform.DeltaAngleZ')
-      .transform(pointToCsvTransformer)
-      .listen((row) => _heaveLog.writeAsString(row, mode: FileMode.append));
-
     super.initState();
   }
   //
   @override
   void dispose() {
-    _cilinder0Log.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _cilinder1Log.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _cilinder2Log.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _phiXLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _phiYLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _rollLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _pitchLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _yawLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _deltaAngleXLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _deltaAngleYLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _deltaAngleZLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
-    _heaveLog.writeAsString('\r\n', mode: FileMode.append, flush: true);
+    _pointLogger.dispose();
     super.dispose();
   }
   //
@@ -201,14 +109,14 @@ class _FluctuationChartsState extends State<FluctuationCharts> {
                       LiveAxis(
                         bufferLength: liveAxisBufferLength,
                         stream: widget._platformStateStream,
-                        signalName: 'alphaX',
+                        signalName: 'phiX',
                         caption: 'Задание угла вокруг Y, градусы',
                         color: Colors.redAccent,
                       ),
                       LiveAxis(
                         bufferLength: liveAxisBufferLength,
                         stream: widget._platformStateStream,
-                        signalName: 'alphaY',
+                        signalName: 'phiY',
                         caption: 'Задание угла вокруг X, градусы',
                         color: Colors.blueAccent,
                       ),

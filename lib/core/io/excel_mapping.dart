@@ -115,7 +115,7 @@ class ExcelMapping {
         cilinder2: beamsPositions.cilinder1,
         cilinder3: beamsPositions.cilinder2,
       ),
-      fluctuationAngles: Offset(-radians, 0.0),
+      fluctuationAngles: Offset(radians, 0.0),
     );
   }
   ///

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:ditredi/ditredi.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hmi_core/hmi_core.dart';
@@ -7,7 +8,7 @@ import 'package:hmi_core/hmi_core_app_settings.dart';
 import 'package:hmi_networking/hmi_networking.dart';
 import 'package:hmi_widgets/hmi_widgets.dart';
 import 'package:stewart_platform_control/core/entities/cilinders_extractions_3f.dart';
-import 'package:stewart_platform_control/core/entities/excel_mapping.dart';
+import 'package:stewart_platform_control/core/io/excel_mapping.dart';
 import 'package:stewart_platform_control/core/io/controller/mdbox_controller.dart';
 import 'package:stewart_platform_control/core/math/mapping/fluctuation_lengths_mapping.dart';
 import 'package:stewart_platform_control/core/math/mapping/frequent_time_mapping.dart';
@@ -159,8 +160,8 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
           sink.add(
             DsDataPoint<double>(
               type: DsDataType.integer,
-              name: DsPointName('/alphaX'),
-              value: state.fluctuationAngles.dy * 180/pi,
+              name: DsPointName('/phiX'),
+              value: state.fluctuationAngles.dy.toDegrees(),
               status: DsStatus.ok,
               timestamp: now,
               cot: DsCot.inf,
@@ -169,8 +170,8 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
           sink.add(
             DsDataPoint<double>(
               type: DsDataType.integer,
-              name: DsPointName('/alphaY'),
-              value: state.fluctuationAngles.dx * 180/pi,
+              name: DsPointName('/phiY'),
+              value: state.fluctuationAngles.dx.toDegrees(),
               status: DsStatus.ok,
               timestamp: now,
               cot: DsCot.inf,

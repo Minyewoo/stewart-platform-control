@@ -37,6 +37,7 @@ dependencies:
   vector_math: ^2.1.4
   flutter_math_fork: ^0.7.2
   csv: ^6.0.0
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
