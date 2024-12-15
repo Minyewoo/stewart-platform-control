@@ -4,7 +4,6 @@ import 'package:stewart_platform_control/core/math/min_max.dart';
 abstract interface class Mapping<I, O> {
   const factory Mapping.generic({
     required O Function(I) mappingFunction,
-    required MinMax<O> minMax,
   }) = _GenericMapping<I,O>;
   ///
   O of(I x);
@@ -20,7 +19,6 @@ class _GenericMapping<I, O> implements Mapping<I, O> {
   ///
   const _GenericMapping({
     required O Function(I) mappingFunction,
-    required MinMax<O> minMax,
   }) : 
     _mappingFunction = mappingFunction;
   //
