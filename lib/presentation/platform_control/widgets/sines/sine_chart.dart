@@ -70,7 +70,7 @@ class SineChart extends StatelessWidget {
       borderData: FlBorderData(
         show: true,
         border: Border.all(
-          color: Theme.of(context).colorScheme.surfaceVariant,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
       ),
     );

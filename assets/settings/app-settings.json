@@ -1,0 +1,8 @@
+{   
+    "jds-app-name": "App",
+    "jds-service-name": "Jds",
+    "jds-host": "127.0.0.1",
+    "jds-port": 16678,
+    "jds-package-timeout": 1000,
+    "jds-connection-timeout": 3000
+}
