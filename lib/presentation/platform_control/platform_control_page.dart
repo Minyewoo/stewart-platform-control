@@ -8,6 +8,7 @@ import 'package:hmi_core/hmi_core_app_settings.dart';
 import 'package:hmi_networking/hmi_networking.dart';
 import 'package:hmi_widgets/hmi_widgets.dart';
 import 'package:stewart_platform_control/core/entities/cilinders_extractions_3f.dart';
+import 'package:stewart_platform_control/core/io/excel_cilinders_mapping.dart';
 import 'package:stewart_platform_control/core/io/excel_mapping.dart';
 import 'package:stewart_platform_control/core/io/controller/mdbox_controller.dart';
 import 'package:stewart_platform_control/core/math/mapping/fluctuation_lengths_mapping.dart';
@@ -219,6 +220,7 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
         messagesStream: _messagesController.stream,
         onSave: () {}, //_saveValues,
         onPlayFile: _onPlayFile,
+        onPlayFileCilinders: _onPlayFileCilinders,
         onStartFluctuations:  _onStartFluctuations,
         onZeroPositionRequest: _onZeroPos,
         onMaxPositionRequest: _onMaxPos,
@@ -410,6 +412,15 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
     );
   }
   ///
+  Future<void> _fluctuateFromTimeMappingUnsafe(TimeMapping<PlatformState> timeMapping) {
+    setState(() {
+      _isPlatformMoving = true;
+    });
+    return _platform.startFluctuationsUnsafe(
+      timeMapping,
+    );
+  }
+  ///
   void _onStartFluctuations() {
     _fluctuateFromTimeMapping(_generateFluctuationFunction(applyHeightOffset: true),);
   }
@@ -419,6 +430,17 @@ class _PlatformControlPageState extends State<PlatformControlPage> {
     return switch(filePath) {
       Some(:final value) => switch(await ExcelMapping(filePath: value).timeMapping()) {
         Some(:final value) => _fluctuateFromTimeMapping(value),
+        None() => mounted ? BottomMessage.error(title: 'Неверные данные').show(context) : null,
+      },
+      None() => mounted ? BottomMessage.warning(title: 'Файл не выбран').show(context) : null,
+    };
+  }
+  ///
+  Future<void> _onPlayFileCilinders() async {
+    final filePath = await _pickFile();
+    return switch(filePath) {
+      Some(:final value) => switch(await ExcelCilindersMapping(filePath: value).timeMapping()) {
+        Some(:final value) => _fluctuateFromTimeMappingUnsafe(value),
         None() => mounted ? BottomMessage.error(title: 'Неверные данные').show(context) : null,
       },
       None() => mounted ? BottomMessage.warning(title: 'Файл не выбран').show(context) : null,

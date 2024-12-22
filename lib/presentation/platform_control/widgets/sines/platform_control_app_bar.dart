@@ -6,6 +6,7 @@ class PlatformControlAppBar extends StatelessWidget implements PreferredSizeWidg
   final Stream<String> _messagesStream;
   // final void Function() _onSaveSines;
   final void Function() _onPlayFile;
+  final void Function() _onPlayFileCilinders;
   final void Function() _onStartFluctuations;
   final void Function() _onZeroPositionRequest;
   final void Function() _onMaxPositionRequest;
@@ -19,6 +20,7 @@ class PlatformControlAppBar extends StatelessWidget implements PreferredSizeWidg
     required void Function() onSave,
     required void Function() onStartFluctuations,
     required void Function() onPlayFile,
+    required void Function() onPlayFileCilinders,
     required void Function() onZeroPositionRequest,
     required void Function() onMaxPositionRequest,
     required void Function() onMinPositionRequest,
@@ -28,6 +30,7 @@ class PlatformControlAppBar extends StatelessWidget implements PreferredSizeWidg
     this.preferredSize = const Size.fromHeight(kToolbarHeight),
   }) :
     _onPlayFile = onPlayFile,
+    _onPlayFileCilinders = onPlayFileCilinders,
     _isPlatformMoving = isPlatformMoving,
     _onPlatformStop = onPlatformStop,
     _onStartFluctuations = onStartFluctuations,
@@ -98,6 +101,18 @@ class PlatformControlAppBar extends StatelessWidget implements PreferredSizeWidg
                 onPressed: _isPlatformMoving ? null : _onPlayFile,
                 icon: const Icon(Icons.file_upload_rounded),
                 label: const Text('Файл'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: isTight ? IconButton(
+                onPressed: _isPlatformMoving ? null : _onPlayFileCilinders,
+                icon: const Icon(Icons.file_upload_rounded),
+                tooltip: 'Файл (цилиндры)',
+              ) : FilledButton.icon(
+                onPressed: _isPlatformMoving ? null : _onPlayFileCilinders,
+                icon: const Icon(Icons.file_upload_rounded),
+                label: const Text('Файл (цилиндры)'),
               ),
             ),
             Padding(

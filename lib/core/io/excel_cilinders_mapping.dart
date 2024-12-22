@@ -1,27 +1,21 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
-import 'package:ditredi/ditredi.dart';
 import 'package:excel/excel.dart';
 import 'package:hmi_core/hmi_core_log.dart';
 import 'package:hmi_core/hmi_core_option.dart';
 import 'package:stewart_platform_control/core/entities/cilinder_lengths_3f.dart';
-import 'package:stewart_platform_control/core/entities/cilinders_extractions_3f.dart';
 import 'package:stewart_platform_control/core/math/mapping/absolute_time_mapping.dart';
 import 'package:stewart_platform_control/core/math/mapping/time_mapping.dart';
 import 'package:stewart_platform_control/core/math/min_max.dart';
 import 'package:stewart_platform_control/core/platform/platform_state.dart';
 
-enum FluctuationType{
-  vertical,
-  unregular
-}
 ///
-class ExcelMapping {
-  static const _log = Log('ExcelMapping');
+class ExcelCilindersMapping {
+  static const _log = Log('ExcelCilindersMapping');
   final String _filePath;
   ///
-  const ExcelMapping({
+  const ExcelCilindersMapping({
     required String filePath,
   }) : _filePath = filePath;
   ///
@@ -32,41 +26,39 @@ class ExcelMapping {
     );
     final sheetName = excel.getDefaultSheet();
     final sheet = excel.tables[sheetName];
-    final dataHeaderText = sheet?.cell(CellIndex.indexByString('B1')).value.toString();
-    final fluctuationType = (dataHeaderText?.startsWith('Angle') ?? false) ? FluctuationType.unregular : FluctuationType.vertical;
-    final mappingFunction = switch(fluctuationType) {
-      FluctuationType.vertical => (double value) => _mapPosition(value, factor: 0.3),
-      FluctuationType.unregular => (double value) => _mapAngle(value),
-    };
     final data = sheet?.rows.skip(1).map(
       (row) {
         // print('Row[0]: ${row[1]?.value.toString()}');
+        if(row.length < 4) {
+          return null;
+        }
         final duration = switch(row[0]?.value) {
           DoubleCellValue(:final value) => Duration(
             milliseconds: (value*1000).toInt(),
           ),
           _ => null,
         };
-        if(duration == null) {
-          return null;
-        }
         // print('Duration: ${duration.inMilliseconds}');
-        final value = switch(row[1]?.value) {
-          DoubleCellValue(:final value) => value,
-          _ => null,
-        };
-        if(value == null) {
+        final cilinderValues = [
+          for(int i = 1; i <= 3; i++)
+            _parseCilinderValue(row[i]?.value)
+        ];
+        if(duration == null || cilinderValues.any((value) => value == null)) {
           return null;
         }
         return AbsoluteTimeValue(
           absoluteDuration: duration,
-          value: value,
+          value: CilinderLengths3f(
+            cilinder1: cilinderValues[0]!,
+            cilinder2: cilinderValues[1]!,
+            cilinder3: cilinderValues[2]!,
+          ),
         );
       },
     )
     .where((value) => value != null)
     .map((value) => value!)
-    .map((value) => value.map(mappingFunction))
+    .map((value) => value.map(_mapCilinders))
     .toList();
     if(data?.isEmpty ?? true) {
       return  const None();
@@ -101,31 +93,19 @@ class ExcelMapping {
     );
   }
   ///
-  PlatformState _mapAngle(double angle, {double factor = 1.0}) {
-    final radians = angle.toRadians();
-    final beamsPositions = lengthsFunctionX.of(
-        CilinderLengthsDependencies(
-          fluctuationAngleRadians: radians,
-          fluctuationCenterOffset: 0.0,
-        ),
-      ).multiply(factor);
-    return PlatformState(
-      beamsPosition: CilinderLengths3f(
-        cilinder1: 0.0,
-        cilinder2: beamsPositions.cilinder1,
-        cilinder3: beamsPositions.cilinder2,
-      ),
-      fluctuationAngles: Offset(radians, 0.0),
-    );
-  }
+  double? _parseCilinderValue(CellValue? cellValue) => switch(cellValue) {
+    DoubleCellValue(:final value) => value,
+    _ => null,
+  };
   ///
-  PlatformState _mapPosition(double position, {double factor = 1.0}) {
+  PlatformState _mapCilinders(CilinderLengths3f lengths, {double factor = 1.0}) {
+    const millimetersInMeter = 1000;
     return PlatformState(
       beamsPosition: CilinderLengths3f(
-        cilinder1: position,
-        cilinder2: position,
-        cilinder3: position,
-      ).multiply(factor),
+        cilinder1: lengths.cilinder3 * millimetersInMeter,
+        cilinder2: lengths.cilinder1 * millimetersInMeter,
+        cilinder3: lengths.cilinder2 * millimetersInMeter,
+      ),
       fluctuationAngles: Offset(0.0, 0.0),
     );
   }

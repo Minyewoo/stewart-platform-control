@@ -50,6 +50,19 @@ class StewartPlatform {
     }
   }
   ///
+  Future<void> startFluctuationsUnsafe(TimeMapping<PlatformState> continousPosition) async {
+    _continousPosition?.stop();
+    _continousPosition = continousPosition;
+    _isStopped = false;
+    _onStatusReport?.call('Начало колебаний');
+    _continousPosition!.start();
+    _continousPosition!.addListener(() {
+      final platformState = _continousPosition!.value;
+      _updatePlatformState(platformState);
+    });
+    _onStartControl?.call();
+  }
+  ///
   Future<void> setBeamsToZeroPositions({Duration time = const Duration(seconds: 10)}) async {
     _isStopped = false;
     await _sendZeroPosition(time: time);
