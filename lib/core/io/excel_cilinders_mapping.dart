@@ -99,12 +99,11 @@ class ExcelCilindersMapping {
   };
   ///
   PlatformState _mapCilinders(CilinderLengths3f lengths, {double factor = 1.0}) {
-    const millimetersInMeter = 1000;
     return PlatformState(
       beamsPosition: CilinderLengths3f(
-        cilinder1: lengths.cilinder3 * millimetersInMeter,
-        cilinder2: lengths.cilinder1 * millimetersInMeter,
-        cilinder3: lengths.cilinder2 * millimetersInMeter,
+        cilinder1: lengths.cilinder3,
+        cilinder2: lengths.cilinder1,
+        cilinder3: lengths.cilinder2,
       ),
       fluctuationAngles: Offset(0.0, 0.0),
     );
