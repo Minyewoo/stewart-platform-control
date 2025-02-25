@@ -35,7 +35,7 @@ dependencies:
   file_picker: ^8.1.4
   ditredi: ^2.0.2
   vector_math: ^2.1.4
-  flutter_math_fork: ^0.7.2
+  flutter_math_fork: ^0.7.3
   csv: ^6.0.0
   path: ^1.9.0
 
